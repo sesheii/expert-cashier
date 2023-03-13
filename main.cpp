@@ -2,8 +2,7 @@
 #include <vector>
 #include <map>
 #include <vector>
-#include <random>
-#include <chrono>
+
 #include <stdlib.h>
 
 using std::string;
@@ -14,6 +13,9 @@ class Account;
 class BankAccount;
 class BankAccountVIP;
 
+
+#include <random>
+#include <chrono>
 uint64_t randomNumber(uint64_t lower, uint64_t higher) {
     std::uniform_int_distribution number_distribution(lower, higher);
     std::mt19937_64 generator {static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())};
@@ -76,7 +78,7 @@ public:
         return personal_account;
     }
 
-    static void setPersonalAccount(Account *personalAccount) {
+    void setPersonalAccount(Account *personalAccount) {
         personal_account = personalAccount;
     }
 
@@ -124,22 +126,25 @@ public:
         if (account_type == 0) {
             P.personal_account = nullptr;
         }
-        else if (account_type == 1) {
+        else if (account_type == 1 || account_type == 2 || account_type == 3 || account_type == 4) {
             P.personal_account = new BankAccount;
+            P.personal_account->setID(P.getId());
+            P.personal_account->balance = randomNumber(0,10000);
         }
-        else if (account_type == 2) {
+        else if (account_type == 5) {
             P.personal_account = new BankAccountVIP;
+            P.personal_account->balance = randomNumber(0,100000);
+            P.personal_account->setID(P.getId());
         }
         return P;
     }
 
     static Person generateRandomPerson() {
-        return Person::generatePerson( (AvailableNames[randomNumber(0,148)] + AvailableSurnames[randomNumber(0,246)]),
+        return Person::generatePerson( (AvailableNames[randomNumber(0,148)] + ' ' + AvailableSurnames[randomNumber(0,246)]),
                                        std::to_string(randomNumber(0,120)),
                                        std::to_string(randomNumber(10000, 20000)),
-                                       randomNumber(0,15), /// 1/15 chance ~ 6,6%
-                                       randomNumber(0,3)); /// ~33,3% chance
-
+                                       !randomNumber(0,6), /// 1/15 chance ~ 6,6%
+                                       randomNumber(0,5)); /// ~33,3% chance
     }
 };
 
@@ -148,6 +153,7 @@ void createBankAccount(Person& P, string type) {
     if (type == "NORMAL") {
         Account* acc = new BankAccount;
         acc->setID(P.getId());
+        acc->balance = randomNumber(0, 10000);
         P.setPersonalAccount(acc);
     }
     else if (type == "VIP") {
@@ -163,30 +169,107 @@ void createBankAccount(Person& P, string type) {
 }
 
 void listPrimaryOptions() {
-    std::cout << "| Your options: (select one by typing a number)\n"
+    std::cout << "  Your options: (select one by typing a number)\n"
                  "| 1. Check client's balance before withdrawing\n"
-                 "| 2. Point a shotgun at them and shoot\n"
-                 "| 3. Look whether they brought an animal with them\n"
-                 "| 4. Validate their ID\n"
-                 "| 5. Check whether they have a bank account\n"
-                 "| 6. Fulfil request without any hesitation\n";
+                 "| 2. Look whether they brought an animal with them\n"
+                 "| 3. Check whether their account type is LEGAL\n"
+                 "| 4. Check whether they have a bank account\n"
+                 "| 5. Fulfil request\n"
+                 "| 6. Deny the request\n";
 }
 
 
 class RandomRequestGenerator {
 public:
-    void generateRequest(Person& P) {
+    void generateRequest(Person& P, bool& isAlive) {
 
         switch(randomNumber(0,0)) {
             case 0:
             {
 
                 int withdrawal_amount = randomNumber(10, 5000);
-                std::cout << "Client: Hello, I would like to withdraw " << withdrawal_amount << "UAH from my balance.\n";
-                std::cout << "You: Hello, please wait a minute.\n";
+                std::cout << "Client: Hello, my name is " << P.getNameAndSurname() << ", I would like to withdraw " << withdrawal_amount << "UAH from my balance.\n";
+                std::cout << "You: Hello, please wait a minute.\n\n";
                 int temp;
 
                 listPrimaryOptions();
+
+                bool verdictResolved = false;
+                while (!verdictResolved) {
+                    std::cin >> temp;
+
+                    if (temp == 5) {
+                        if (P.getPersonalAccount()->getID() != P.getId()){
+                            std::cout << "You forgot to validate client's account type it turned out to be fake\n"
+                                         "You were sent to prison.\n"
+                                         "GAME OVER.";
+                            isAlive = false;
+                            return;
+                        }
+                        if (P.BroughtAPet()){
+                            std::cout << "You served a client with a pet, which is not allowed in the bank\n"
+                                         "You were fired.\n"
+                                         "GAME OVER.";
+                            isAlive = false;
+                            return;
+                        }
+                        else {
+                            std::cout << "Here you go. Have a nice day!\n";
+                            verdictResolved = true;
+                        }
+                    }
+
+                    if (temp == 6) {
+                        if (!(P.getPersonalAccount()->getID() != P.getId()) || !P.BroughtAPet()){
+                            std::cout << "You denied a request without a reason\n"
+                                         "You were fired. GAME OVER.";
+                            isAlive = false;
+                            return;
+                        }
+                        else {
+                            std::cout << "Your request was denied. Please leave.\n";
+                            verdictResolved = true;
+                        }
+                    }
+
+                    if (temp == 1) {
+                        if (P.getPersonalAccount() == nullptr) {
+                            std::cout << "This person doesn't have a bank account. Creating new account.\n";
+                            Account* acc = new BankAccount;
+                            acc->setID(P.getId());
+                            P.setPersonalAccount(acc);
+                        }
+                        if (P.getPersonalAccount()->balance < withdrawal_amount) {
+                            std::cout << "This person doesn't have enough money. Denying request\n";
+                            verdictResolved = true;
+                            return;
+                        }
+                        else {
+                            P.getPersonalAccount()->balance -= withdrawal_amount;
+                            std::cout << "This person has enough money.\n";
+                        }
+                    }
+
+                    if (temp == 2) {
+                        if (P.getPersonalAccount() == nullptr) {
+                            std::cout << "This person doesn't have a bank account. Creating new account.\n";
+                            Account* acc = new BankAccount;
+                            acc->setID(P.getId());
+                            P.setPersonalAccount(acc);
+                        }
+                        if (P.getPersonalAccount()->balance < withdrawal_amount) {
+                            std::cout << "Sorry, sir but you don't have enough money to do that. Please leave.\n";
+                            return;
+                        }
+                        else {
+                            P.getPersonalAccount()->balance -= withdrawal_amount;
+                            std::cout << "Here goes your money sir. Your balance now is "
+                                      << P.getPersonalAccount()->balance << " UAH Thanks for choosing our bank.\n";
+                        }
+                    }
+
+                    if (temp == 3);
+                }
 
                 std::cin >> temp;
 
@@ -194,64 +277,68 @@ public:
                     case 1:
                         if (P.getPersonalAccount() == nullptr) {
                             std::cout << "You don't have a bank account. I'll register one for you and then attempt to fulfil your request\n";
-                            Person::setPersonalAccount(P);
-                        }
-                        if (P.getPersonalAccount()->getID() != P.getId()){
-                            std::cout << "You forgot to validate client's ID with bank account's ID and it turned out to be fake\n"
-                                         "You were sent to prison.\n"
-                                         "GAME OVER.";
-                            return;
-                        }
-                        if (P.BroughtAPet()){
-                            std::cout << "You served a client with a pet, which is not allowed in the bank\n"
-                                         "You were fired.\n"
-                                         "GAME OVER.";
-                            return;
-                        }
+                            Account* acc = new BankAccount;
+                            acc->setID(P.getId());
+                            P.setPersonalAccount(acc);
 
-
+                        }
                         if (P.getPersonalAccount()->balance < withdrawal_amount) {
                             std::cout << "Sorry, sir but you don't have enough money to do that. Please leave.\n";
                             return;
                         }
                         else {
                             P.getPersonalAccount()->balance -= withdrawal_amount;
-                            std::cout << "Here goes your money sir. Your balance now is " << P.getPersonalAccount()->balance<< " UAH Thanks for choosing our bank.\\n";
+                            std::cout << "Here goes your money sir. Your balance now is " << P.getPersonalAccount()->balance<< " UAH Thanks for choosing our bank.\n";
                         }
 
-                        break;
+                        if (P.getPersonalAccount()->getID() != P.getId()){
+                            std::cout << "You forgot to validate client's account type it turned out to be fake\n"
+                                         "You were sent to prison.\n"
+                                         "GAME OVER.";
+                            isAlive = false;
+                            return;
+                        }
+                        if (P.BroughtAPet()){
+                            std::cout << "You served a client with a pet, which is not allowed in the bank\n"
+                                         "You were fired.\n"
+                                         "GAME OVER.";
+                            isAlive = false;
+                            return;
+                        }
+
+                        return;
                     case 2:
                         std::cout << "The client didn't deserve that...\n"
                                      "You were sent to prison.\n"
                                      "GAME OVER.";
+                        isAlive = false;
                         return;
-
                 }
 
                         break;
             }
         }
-                break;
-
-            case 1:
-                break;
-            case 2:
-                break;
-            default:
-                break;
+//                break;
+//
+//            case 1:
+//                break;
+//            case 2:
+//                break;
+//            default:
+//                break;
         }
-    }
-};
+    };
 
 int main() {
 
     bool isAlive = true;
 
     while (isAlive) {
-        std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"; /// clear console
+        std::cout << "\n\n\n"; /// clear console
         Person P = Person::generateRandomPerson();
 
-        RandomRequestGenerator::generateRequest(P);
+        RandomRequestGenerator req;
+        req.generateRequest(P, isAlive);
 
 
     }
