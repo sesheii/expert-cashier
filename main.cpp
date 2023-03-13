@@ -4,6 +4,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <stdlib.h>
 
 using std::string;
 extern std::vector<string> AvailableNames;
@@ -19,6 +20,49 @@ uint64_t randomNumber(uint64_t lower, uint64_t higher) {
     return number_distribution(generator);
 }
 
+class Account {
+public:
+    long double balance;
+    string ID;
+    string type = "UNKNOWN";
+
+    string getID() const {
+        return ID;
+    }
+    void setID(string _id) {
+        Account::ID = _id;
+    }
+
+    virtual void withdrawMoney(uint64_t val)=0;
+    virtual void depositMoney(uint64_t val)=0;
+};
+
+class BankAccount : public Account {
+public:
+    BankAccount() {
+        type = "NORMAL";
+    }
+    void withdrawMoney(uint64_t amount) override {
+        balance -= amount*0.75;
+    }
+    void depositMoney(uint64_t amount) override {
+        balance += amount*0.75;
+    }
+};
+
+class BankAccountVIP : public Account {
+public:
+    BankAccountVIP(){
+        type = "VIP";
+    }
+    void withdrawMoney(uint64_t amount) override {
+        balance -= amount*0.99;
+    }
+    void depositMoney(uint64_t amount) override {
+        balance += amount*0.99;
+    }
+};
+
 class Person {
     string name_and_surname;/// to look for a person in database
     string age;/// to check whether they can have a bank account
@@ -32,7 +76,7 @@ public:
         return personal_account;
     }
 
-    void setPersonalAccount(Account *personalAccount) {
+    static void setPersonalAccount(Account *personalAccount) {
         personal_account = personalAccount;
     }
 
@@ -62,106 +106,154 @@ public:
     }
 
 
-    bool isBroughtAPet() const {
+    bool BroughtAPet() const {
         return brought_a_pet;
     }
     void setBroughtAPet(bool broughtAPet) {
         brought_a_pet = broughtAPet;
     }
 
-    static Person generatePerson(const string& _name_and_surname, const string& _age, const string& _id, bool _brought_a_pet) {
+    static Person generatePerson(const string& _name_and_surname, const string& _age, const string& _id, bool _brought_a_pet, int account_type) {
+
         Person P;
         P.setNameAndSurname(_name_and_surname);
         P.setAge(_age);
         P.setId(_id);
         P.setBroughtAPet(_brought_a_pet);
-    }
 
-
-//    bool operator<(const Person &rhs) const {
-//        if (name_and_surname < rhs.name_and_surname)
-//            return true;
-//        if (rhs.name_and_surname < name_and_surname)
-//            return false;
-//        if (age < rhs.age)
-//            return true;
-//        if (rhs.age < age)
-//            return false;
-//        if (id < rhs.id)
-//            return true;
-//        if (rhs.id < id)
-//            return false;
-//        return brought_a_pet < rhs.brought_a_pet;
-//    }
-//
-//    bool operator>(const Person &rhs) const {
-//        return rhs < *this;
-//    }
-//
-//    bool operator<=(const Person &rhs) const {
-//        return !(rhs < *this);
-//    }
-//
-//    bool operator>=(const Person &rhs) const {
-//        return !(*this < rhs);
-//    }
-};
-
-class Account {
-public:
-    uint64_t balance;
-    string ID;
-    string type = "UNKNOWN";
-
-    string getID() const {
-        return ID;
-    }
-    void setID(bool _id) {
-        Account::ID = _id;
-    }
-
-    virtual void withdrawMoney(uint64_t val)=0;
-    virtual void depositMoney(uint64_t val)=0;
-};
-
-class BankAccount : public Account {
-public:
-    BankAccount() {
-        type = "NORMAL";
-    }
-    void withdrawMoney(uint64_t amount) override {
-        if (amount > balance){
+        if (account_type == 0) {
+            P.personal_account = nullptr;
         }
+        else if (account_type == 1) {
+            P.personal_account = new BankAccount;
+        }
+        else if (account_type == 2) {
+            P.personal_account = new BankAccountVIP;
+        }
+        return P;
     }
-    void depositMoney(uint64_t amount) override {
+
+    static Person generateRandomPerson() {
+        return Person::generatePerson( (AvailableNames[randomNumber(0,148)] + AvailableSurnames[randomNumber(0,246)]),
+                                       std::to_string(randomNumber(0,120)),
+                                       std::to_string(randomNumber(10000, 20000)),
+                                       randomNumber(0,15), /// 1/15 chance ~ 6,6%
+                                       randomNumber(0,3)); /// ~33,3% chance
 
     }
 };
 
-class BankAccountVIP : public Account {
-public:
-    BankAccountVIP(){
-        type = "VIP";
-    }
-    void withdrawMoney(uint64_t amount) override {
-    }
-    void depositMoney(uint64_t amount) override {
 
+void createBankAccount(Person& P, string type) {
+    if (type == "NORMAL") {
+        Account* acc = new BankAccount;
+        acc->setID(P.getId());
+        P.setPersonalAccount(acc);
+    }
+    else if (type == "VIP") {
+        Account* acc = new BankAccountVIP;
+        acc->setID(P.getId());
+        P.setPersonalAccount(acc);
+    }
+    else if (type == "ILLEGAL") {
+        Account* acc = new BankAccountVIP;
+        acc->setID("9999900000");
+        P.setPersonalAccount(acc);
+    }
+}
+
+void listPrimaryOptions() {
+    std::cout << "| Your options: (select one by typing a number)\n"
+                 "| 1. Check client's balance before withdrawing\n"
+                 "| 2. Point a shotgun at them and shoot\n"
+                 "| 3. Look whether they brought an animal with them\n"
+                 "| 4. Validate their ID\n"
+                 "| 5. Check whether they have a bank account\n"
+                 "| 6. Fulfil request without any hesitation\n";
+}
+
+
+class RandomRequestGenerator {
+public:
+    void generateRequest(Person& P) {
+
+        switch(randomNumber(0,0)) {
+            case 0:
+            {
+
+                int withdrawal_amount = randomNumber(10, 5000);
+                std::cout << "Client: Hello, I would like to withdraw " << withdrawal_amount << "UAH from my balance.\n";
+                std::cout << "You: Hello, please wait a minute.\n";
+                int temp;
+
+                listPrimaryOptions();
+
+                std::cin >> temp;
+
+                switch (temp) {
+                    case 1:
+                        if (P.getPersonalAccount() == nullptr) {
+                            std::cout << "You don't have a bank account. I'll register one for you and then attempt to fulfil your request\n";
+                            Person::setPersonalAccount(P);
+                        }
+                        if (P.getPersonalAccount()->getID() != P.getId()){
+                            std::cout << "You forgot to validate client's ID with bank account's ID and it turned out to be fake\n"
+                                         "You were sent to prison.\n"
+                                         "GAME OVER.";
+                            return;
+                        }
+                        if (P.BroughtAPet()){
+                            std::cout << "You served a client with a pet, which is not allowed in the bank\n"
+                                         "You were fired.\n"
+                                         "GAME OVER.";
+                            return;
+                        }
+
+
+                        if (P.getPersonalAccount()->balance < withdrawal_amount) {
+                            std::cout << "Sorry, sir but you don't have enough money to do that. Please leave.\n";
+                            return;
+                        }
+                        else {
+                            P.getPersonalAccount()->balance -= withdrawal_amount;
+                            std::cout << "Here goes your money sir. Your balance now is " << P.getPersonalAccount()->balance<< " UAH Thanks for choosing our bank.\\n";
+                        }
+
+                        break;
+                    case 2:
+                        std::cout << "The client didn't deserve that...\n"
+                                     "You were sent to prison.\n"
+                                     "GAME OVER.";
+                        return;
+
+                }
+
+                        break;
+            }
+        }
+                break;
+
+            case 1:
+                break;
+            case 2:
+                break;
+            default:
+                break;
+        }
     }
 };
 
 int main() {
 
-    std::vector<Person> database;
-
     bool isAlive = true;
 
     while (isAlive) {
-        Person::generatePerson( AvailableNames[randomNumber(0,148)] + AvailableSurnames[randomNumber(0,246)],
-                                std::to_string(randomNumber(0,120)), std::to_string(randomNumber(10000, 20000)),
-                                randomNumber(0,15));
-        
-        
+        std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"; /// clear console
+        Person P = Person::generateRandomPerson();
+
+        RandomRequestGenerator::generateRequest(P);
+
+
     }
 
 
