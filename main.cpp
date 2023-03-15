@@ -2,6 +2,7 @@
 #include <string>
 #include <random>
 #include <chrono>
+#include <iomanip>
 #include "utility.h"
 
 int randomNumber(int lower, int higher) {
@@ -39,7 +40,12 @@ class BankClient {
     bool registered = false;
     int ID = 0;
     uint64_t balance;
+    bool hasGovernmentPermission;
 public:
+
+    bool hasGovPerm(){
+        return hasGovernmentPermission;
+    }
     void createAccount() {
         if (registered) {
             std::cout << "This person is registered already.\n";
@@ -50,15 +56,11 @@ public:
         registered = true;
     }
 
-    bool getRegistered() {
+    bool isRegistered() {
         return registered;
     }
 
     void accountWithdraw(uint64_t amount) {
-        if (amount > balance) {
-            std::cout << "This person doesn't have enough money to perform the operation.\n";
-            return;
-        }
         balance -= amount;
     }
 
@@ -68,6 +70,10 @@ public:
 
     int getAccountID() {
         return ID;
+    }
+
+    uint64_t getBalance(){
+        return balance;
     }
 
 };
@@ -96,11 +102,12 @@ class Man : public Human {
 public:
     Man(std::string r = "") {
         if (r == "random") {
-            if (randomNumber(0, 9)) /// 10% chance to get no bank account
+            if (randomNumber(0, 9)) { /// 10% chance to get no bank account
                 this->createAccount();
-            this->accountDeposit(randomNumber(0,5000));
+                this->accountDeposit(randomNumber(0, 5000));
+            }
             gender = "male";
-            age = randomNumber(16, 100);
+            age = randomNumber(0, 80);
             name_surname = male_names[randomNumber(0,male_names.size()-1)] + ' '
                     + male_surnames[randomNumber(0,male_surnames.size()-1)];
         }
@@ -118,7 +125,7 @@ public:
                 this->createAccount();
             this->accountDeposit(randomNumber(0,4999));
             gender = "female";
-            age = randomNumber(16, 100);
+            age = randomNumber(0, 80);
             name_surname = female_names[randomNumber(0,female_names.size()-1)] + ' '
                            + female_surnames[randomNumber(0,female_surnames.size()-1)];
         }
@@ -129,7 +136,6 @@ public:
 };
 
 class Alien : public Entity, public BankClient {
-    bool hasGovernmentPermission;
 public:
     Alien() {
         species = "alien";
@@ -142,25 +148,19 @@ public:
     void greet() override {
         std::cout << "!&$:209#@;%  @#%2;:$!90&!  (Hello, mr cashier!)\n";
     }
-
-    bool hasGovPerm(){
-        return hasGovernmentPermission;
-    }
 };
 
-int DisplayAndChooseAction(){
-    std::cout << "----------------------------------------------\n"
-                 "Choose your next action by typing in a number:\n"
+void DisplayOptions(){
+    std::cout <<
+                 "\nChoose your next action by typing in a number:\n"
                  "| 1. fulfil the request\n"
                  "| 2. deny the request\n"
                  "| 3. check alien government permission\n"
                  "| 4. check balance\n"
                  "| 5. check whether account exists\n"
                  "| 6. register an account\n"
+                 "| 7. remind about a request type\n"
                  "----------------------------------------------\n";
-    int t;
-    std::cin >> t;
-    return t;
 }
 
 /// Need some event thingy
@@ -181,15 +181,23 @@ public:
 int faultCount(Human* person) {
     int count = 0;
     std::string message;
-    if (person->getAccountID() < 10000000) {
-        message += person->getNameSurname() + "'s ID is fake, because it's value is less than 10e+7.";
+    if (person->getAge() < 16) {
+        message += person->getNameSurname() + " You miscalculated. is too young to have a bank account.\n";
+        count++;
+    }
+
+    if (!person->isRegistered() && person->getBalance() > 0) {
+        message += person->getNameSurname() + "'something's wrong or the person has done same malicious manipulations. ";
 //                                                 " Yet you still have fulfilled " + ( (person->getGender() == "male") ? "his" : "her")  + " request\n";
         count++;
     }
-    if (!person->getRegistered()) {
-        message += person->getNameSurname() + " Is not registered in the bank.";
+    if (!person->isRegistered()) {
+        message += person->getNameSurname() + " Is not registered in the bank. ";
 //                                                 " Yet you still have fulfilled " + ( (person->getGender() == "male") ? "his" : "her")  + " request\n";
         count++;
+    }
+    if (person->getSpecies() == "alien" && !person->hasGovPerm()){
+        message += "This alien doesn't have government's permission. ";
     }
     if (count > 0) std::cout << message << '\n';
     return count;
@@ -202,11 +210,13 @@ class withdrawalRequest : public Request_ {
         std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
         std::cout << "Client: Hello, my full name is " << person->getNameSurname() << ", my ID is "
         << person->getAccountID() << " and I would like to withdraw " <<
-        randomNumber(0, 3000) << " UAH from my bank account balance\n";
+        randomNumber(0, 3000) << " UAH from my bank account balance.\n";
 
         while (!resolved) {
-            std::cin.ignore();
-            int i = DisplayAndChooseAction();
+            DisplayOptions();
+
+            int i;
+            std::cin >> std::ws >> i;
 
             if (i == 1)
             {
@@ -230,6 +240,32 @@ class withdrawalRequest : public Request_ {
                     std::cout << "You denied a person without a reason. Game over.\n";
                     return false;
                 }
+            }
+
+            else if (i == 3) {
+                if (person->getSpecies() == "human") {
+                    std::cout << "This person is not an alien so doesn't need this permission.\n";
+                }
+                else {
+                    std::cout << person->hasGovPerm();
+                }
+            }
+
+            else if (i == 4){
+                std::cout << person->getNameSurname() << " currently has " << person->getBalance() << " UAH on "
+                << (person->getGender() == "male" ? "his" : "her") << " bank account.\n";
+            }
+
+            else if (i == 5) {
+                std::cout << person->getNameSurname() << ' ' << (person->isRegistered() ? "Has a bank account.\n" : "Doesn't have a bank account.\n");
+            }
+
+            else if (i == 6) {
+                person->createAccount();
+            }
+
+            else if (i == 7) {
+                std::cout << person->getNameSurname() << " with ID " << person->getAccountID() << " wants to withdraw money.\n";
             }
 
         }
@@ -307,6 +343,7 @@ public:
 void Game::play(){
 
     active = true;
+    
     while (active) {
 
         Human* person = nullptr;
@@ -320,18 +357,15 @@ void Game::play(){
 
         active = req->handleRequest(person);
 
+
+
         if (active) {
-//            std::cout << "\nType in Y to continue. Type N to stop the game.";
             std::cout << "Press Enter to Continue";
             std::cin.ignore();
             std::string myString = "";
             std::getline(std::cin, myString);
             if (myString.length() != 0) stop();
         }
-//        std::cout << "Hello, my full name is " << person->getNameSurname() << " and I would like to withdraw " << randomNumber(0,1000)
-//        << " UAH from my account.\n";
-//        DisplayAndChooseAction();
-
     }
 
 }
@@ -346,14 +380,16 @@ int main() {
 //    for (int i = 0; i < 20; ++i){
 //        Man MAN("random");
 //        std::cout << "name_surname: " << MAN.getNameSurname() << "; age: "
-//        << MAN.getAge() << "; ID:" << MAN.getAccountID() << "; species:" << MAN.getGender() << '\n';
+//        << MAN.getAge() << "; ID:" << MAN.getAccountID() << "; species:" << MAN.getGender() << "; balance: " << MAN.getBalance() <<
+//        "; isReg: " << MAN.isRegistered() << '\n';
 //    }
 //    std::cout << "\n\n\n\n";
 //    for (int i = 0; i < 20; ++i){
 //        Woman MAN("random");
 //        std::cout << "name_surname: " << MAN.getNameSurname() << "; age: "
-//                  << MAN.getAge() << "; ID:" << MAN.getAccountID() << "; species:" << MAN.getGender() << '\n';
+//                  << MAN.getAge() << "; ID:" << MAN.getAccountID() << "; species:" << MAN.getGender() << "; balance: " << MAN.getBalance() <<
+//                  "; isReg: " << MAN.isRegistered() << '\n';
 //    }
-//
+
 //    Alien al;
 }
