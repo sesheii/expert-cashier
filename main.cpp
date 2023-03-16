@@ -35,7 +35,7 @@ public:
         return income;
     }
 
-    virtual std::string TellWithdrawalQuery(uint64_t amount) = 0;
+    virtual void TellWithdrawalQuery(uint64_t amount) = 0;
 
     virtual void greetCashier() = 0;
 
@@ -54,16 +54,16 @@ public:
         std::vector<std::string> queries {};
     }
 
-//    std::string getName() {
-//        return name;
-//    }
-//    std::string getSpecies() {
-//        return species;
-//    }
-//    bool ableToUseBank() {
-//        return canUseBank;
-//    }
-
+    std::string getName() {
+        return name;
+    }
+    std::string getSpecies() {
+        return species;
+    }
+    bool ableToUseBank() {
+        return canUseBank;
+    }
+protected:
     std::string name;
     std::string species;
     int age;
@@ -71,46 +71,122 @@ public:
 
 };
 
+
 class Query_ {
 public:
     bool resolved = false;
     std::string type;
     Humanoid* person;
+    int points = 0;
     Query_(std::string type_, Humanoid* person_) : type(type_), person(person_){}
-
-    void acceptQuery(){
-        resolved = true;
-    }
-
-    void denyQuery() {
+    
+    void resolveQuery() {
         resolved = true;
     }
 
     void withdrawal_displayOptions(){
-        std::cout << "Type in a number that corresponds to the text nex to it.\n"
+        std::cout << "Type in a number that corresponds to the text next to it.\n"
                      "| 1. accept the query\n"
                      "| 2. deny the query\n"
                      "| 3. check whether ID is fake\n"
-                     "| 4. check whether the person has enough money\n"
-                     "| 5. check account type (can be normal or VIP)\n"
+                     "| 4. check whether the person has enough money to withdraw\n"
+                     "| 5. check whether the person can use bank\n"
                      "==========================================================\n";
     }
 
-    void handleQuery() {
+    int handleQuery() {
         if (type == "withdrawal"){
-            uint64_t withdraw_amount = rn(1,1500);
+            uint64_t withdrawal_amount = rn(1,1500);
 
             person->greetCashier();
-            person->TellWithdrawalQuery(withdraw_amount);
+            person->TellWithdrawalQuery(withdrawal_amount);
 
             std::cout << '\n';
             withdrawal_displayOptions();
-            
+
+//            person->ID = "00000FAKE";
+
             while (!resolved) {
                 int t;
                 std::cin >> t;
+
+                if (t == 1) {
+                    std::string error_message = "ERROR: ";
+                    
+                    if (person->getId().substr(5,4) == "FAKE"){
+                        error_message += "This person's ID is fake; ";
+                        points -= 15;
+                    }
+                    if (person->getBalance() < withdrawal_amount){
+                        error_message += "This person doesn't have enough money on their bank account; ";
+                        points -= 10;
+                    }
+                    if (!person->ableToUseBank()){
+                        error_message += "This person is banned from using bank; ";
+                        points -= 15;
+                    }
+                    
+                    if (person->getAccountType() == "VIP" && points > 0) {
+                        points = -1; ///that's right
+                    }
+
+
+                    if (points < 0) {
+                        std::cout << error_message << "\nYou made a mistake while dealing with client. Your points decreased by " << points
+                                  << " points\n";
+                    }
+                    else {
+                        if (person->getAccountType() == "VIP") {
+                            std::cout << "You successfully handled the task. Good job! (+10 points)\n";
+                            points += 10;
+                        }
+                        else {
+                            std::cout << "You successfully handled the task. Good job! (+5 points)\n";
+                            points += 5;
+                        }
+                    }
+                    
+                    this->resolveQuery();
+                }
+
+                else if (t == 2) {
+
+                    if (person->getId().substr(5,4) != "FAKE"
+                    &&  person->getBalance() >= withdrawal_amount
+                    &&  person->ableToUseBank())
+                    {
+                        std::cout << "This person was not guilty of anything\n";
+
+                        if (person->getAccountType() == "VIP") {
+                            points -= 30;
+                        }
+                        else points -= 20;
+                    }
+
+                    else {
+                        if (person->getAccountType() == "VIP") {
+                            std::cout << "You successfully handled the task. Good job! (+10 points)\n";
+                            points += 10;
+                        }
+                        else {
+                            std::cout << "You successfully handled the task. Good job! (+5 points)\n";
+                            points += 5;
+                        }
+                    }
+
+                    this->resolveQuery();
+                }
+
+                else if (t == 3)
+                    std::cout << person->getName() << "'s ID is " << person->getId() << '\n';
+                else if (t == 4)
+                    std::cout << person->getName() << "'s balance is " << person->getBalance() << " UAH and they want to withdraw "
+                    << withdrawal_amount << " UAH\n";
+                else if (t == 5)
+                    std::cout << person->getName() << ' ' << (person->ableToUseBank() ? "can use bank\n" : "is banned from using bank\n");
             }
         }
+        return points;
     }
 };
 
@@ -130,20 +206,28 @@ public:
         std::cout << "Hello! my name is " << this->name << '\n';
     }
 
-    std::string TellWithdrawalQuery(uint64_t amount) override {
-        return "I would like to withdraw " + std::to_string(amount) + " UAH\n";
+    void TellWithdrawalQuery(uint64_t amount) override {
+        std::cout << "I would like to withdraw " + std::to_string(amount) + " UAH from my bank account.\n";
     }
 };
 
 
 #include <vector>
 
-int main() {
-    std::vector<Human*> h(100);
-    for (auto& i : h)
-        i = new Human();
+constexpr int min_points = -50;
 
-    for (int i = 0; i < 100; ++i)
-        std::cout << h[i]->name << ' ' << h[i]->getBalance() << ' ' << h[i]->getId() << ' ' << h[i]->getAccountType() << ' ' << h[i]->getIncome() << ' ' << '\n';
-    ///array here
+
+int main() {
+    int score = 0;
+    while (true){
+        std::cout << "\n\n\n\n\n";
+        Humanoid* humaa = new Human();
+        Query_ q("withdrawal", humaa);
+        score += q.handleQuery();
+
+        if (score < min_points) {
+            std::cout << "GAME OVER.";
+            break;
+        }
+    }
 }
