@@ -1,395 +1,130 @@
 #include <iostream>
-#include <string>
-#include <random>
-#include <chrono>
-#include <iomanip>
+#include <vector>
 #include "utility.h"
 
-int randomNumber(int lower, int higher) {
-    std::uniform_int_distribution distribution(lower, higher);
-    std::mt19937_64 timeSeededGenerator {static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())};
-    return distribution(timeSeededGenerator);
-}
-
-class Entity {
-protected:
-    std::string name_surname;
-    int age;
-    std::string species;
-
-public:
-    Entity(){}
-    Entity(std::string _name_surname, int _age) : name_surname(_name_surname), age(_age) {}
-
-    std::string getNameSurname() {
-        return name_surname;
-    }
-    int getAge() {
-        return age;
-    }
-    std::string getSpecies() {
-        return species;
-    }
-
-    virtual void greet(){
-        std::cout << "UNDEFINED. YOU SHOULDN'T SEE THIS MESSAGE\n";
-    }
-};
-
-class BankClient {
-    bool registered = false;
-    int ID = 0;
+class BankUser {
+private:
+    std::string ID;
+    std::string accountType;
     uint64_t balance;
-    bool hasGovernmentPermission;
+    uint64_t income;
 public:
+    BankUser(std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
+    : ID(ID_), accountType(accountType_), balance(balance_), income(income_){}
 
-    bool hasGovPerm(){
-        return hasGovernmentPermission;
-    }
-    void createAccount() {
-        if (registered) {
-            std::cout << "This person is registered already.\n";
-            return;
-        }
-        ID = randomNumber(10000000, 99999999);
-        balance = 0;
-        registered = true;
+    BankUser() { /// no arguments - random values
+        ID = std::to_string(rn(10000, 99999)) + (rn(0, 9) ? "" : "FAKE"); /// 10% chance of person having fake ID
+        accountType = rn(0, 12) ? "NORMAL" : "VIP"; /// 8,(3)% chance of person having VIP account
+        balance = rn(0, 12000);
+        income = rn(1000, 6000);
     }
 
-    bool isRegistered() {
-        return registered;
-    }
-
-    void accountWithdraw(uint64_t amount) {
-        balance -= amount;
-    }
-
-    void accountDeposit(uint64_t amount) {
-        balance += amount;
-    }
-
-    int getAccountID() {
+    const std::string &getId() const {
         return ID;
     }
 
-    uint64_t getBalance(){
+    const std::string &getAccountType() const {
+        return accountType;
+    }
+
+    uint64_t getBalance() const {
         return balance;
     }
 
+    uint64_t getIncome() const {
+        return income;
+    }
+
+    virtual std::string TellWithdrawalRequest(uint64_t amount) = 0;
+
+    virtual void greetCashier() = 0;
+
 };
 
-class Human : public Entity, public BankClient {
-protected:
-    std::string gender;
-public:
-    Human(){
-        species = "human";
-    }
-    Human(std::string _name_surname, int _age) : Entity(_name_surname, _age){
-        species = "human";
-    }
-
-    std::string getGender() {
-        return gender;
-    }
-
-    void greet() override {
-        std::cout << "Hello, mr cashier!\n";
-    }
-};
-
-class Man : public Human {
-public:
-    Man(std::string r = "") {
-        if (r == "random") {
-            if (randomNumber(0, 9)) { /// 10% chance to get no bank account
-                this->createAccount();
-                this->accountDeposit(randomNumber(0, 5000));
-            }
-            gender = "male";
-            age = randomNumber(0, 80);
-            name_surname = male_names[randomNumber(0,male_names.size()-1)] + ' '
-                    + male_surnames[randomNumber(0,male_surnames.size()-1)];
-        }
-    }
-    Man(std::string _name_surname, int _age) : Human(_name_surname, _age){
-        gender = "male";
-    }
-};
-
-class Woman : public Human {
-public:
-    Woman(std::string r = "") {
-        if (r == "random") {
-            if (randomNumber(0, 9)) /// 10% chance to get no bank account
-                this->createAccount();
-            this->accountDeposit(randomNumber(0,4999));
-            gender = "female";
-            age = randomNumber(0, 80);
-            name_surname = female_names[randomNumber(0,female_names.size()-1)] + ' '
-                           + female_surnames[randomNumber(0,female_surnames.size()-1)];
-        }
-    }
-    Woman(std::string _name_surname, int _age) : Human(_name_surname, _age){
-        gender = "female";
-    }
-};
-
-class Alien : public Entity, public BankClient {
-public:
-    Alien() {
-        species = "alien";
-    }
-
-    Alien(std::string _name_surname, int _age) : Entity(_name_surname, _age){
-        species = "alien";
-    }
-
-    void greet() override {
-        std::cout << "!&$:209#@;%  @#%2;:$!90&!  (Hello, mr cashier!)\n";
-    }
-};
-
-void DisplayOptions(){
-    std::cout <<
-                 "\nChoose your next action by typing in a number:\n"
-                 "| 1. fulfil the request\n"
-                 "| 2. deny the request\n"
-                 "| 3. check alien government permission\n"
-                 "| 4. check balance\n"
-                 "| 5. check whether account exists\n"
-                 "| 6. register an account\n"
-                 "| 7. remind about a request type\n"
-                 "----------------------------------------------\n";
-}
-
-/// Need some event thingy
-
-
-
-
-
-class Request_ {
+class Humanoid;
+class Query_ {
 public:
     bool resolved = false;
+    std::string type;
+    Humanoid* person;
+    Query_(std::string type_, Humanoid* person_) : type(type_), person(person_){}
 
-    virtual bool handleRequest(Human* person) = 0;
-    virtual void denyRequest(Human* person) = 0;
-    virtual void acceptRequest(Human* person) = 0;
-};
-
-int faultCount(Human* person) {
-    int count = 0;
-    std::string message;
-    if (person->getAge() < 16) {
-        message += person->getNameSurname() + " You miscalculated. is too young to have a bank account.\n";
-        count++;
+    void acceptRequest(){
+        resolved = true;
     }
 
-    if (!person->isRegistered() && person->getBalance() > 0) {
-        message += person->getNameSurname() + "'something's wrong or the person has done same malicious manipulations. ";
-//                                                 " Yet you still have fulfilled " + ( (person->getGender() == "male") ? "his" : "her")  + " request\n";
-        count++;
+    void denyRequest() {
+        resolved = true;
     }
-    if (!person->isRegistered()) {
-        message += person->getNameSurname() + " Is not registered in the bank. ";
-//                                                 " Yet you still have fulfilled " + ( (person->getGender() == "male") ? "his" : "her")  + " request\n";
-        count++;
-    }
-    if (person->getSpecies() == "alien" && !person->hasGovPerm()){
-        message += "This alien doesn't have government's permission. ";
-    }
-    if (count > 0) std::cout << message << '\n';
-    return count;
-}
 
-
-class withdrawalRequest : public Request_ {
-    bool handleRequest(Human* person) override {
-
-        std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
-        std::cout << "Client: Hello, my full name is " << person->getNameSurname() << ", my ID is "
-        << person->getAccountID() << " and I would like to withdraw " <<
-        randomNumber(0, 3000) << " UAH from my bank account balance.\n";
-
-        while (!resolved) {
-            DisplayOptions();
-
-            int i;
-            std::cin >> std::ws >> i;
-
-            if (i == 1)
-            {
-                resolved = true;
-                if (faultCount(person) == 0) {
-                    acceptRequest(person);
-                    return true;
-                }
-                else {
-                    return false;
-                }
-            }
-
-            else if (i == 2) {
-                resolved = true;
-                if (faultCount(person) != 0) {
-                    denyRequest(person);
-                    return true;
-                }
-                else {
-                    std::cout << "You denied a person without a reason. Game over.\n";
-                    return false;
-                }
-            }
-
-            else if (i == 3) {
-                if (person->getSpecies() == "human") {
-                    std::cout << "This person is not an alien so doesn't need this permission.\n";
-                }
-                else {
-                    std::cout << person->hasGovPerm();
-                }
-            }
-
-            else if (i == 4){
-                std::cout << person->getNameSurname() << " currently has " << person->getBalance() << " UAH on "
-                << (person->getGender() == "male" ? "his" : "her") << " bank account.\n";
-            }
-
-            else if (i == 5) {
-                std::cout << person->getNameSurname() << ' ' << (person->isRegistered() ? "Has a bank account.\n" : "Doesn't have a bank account.\n");
-            }
-
-            else if (i == 6) {
-                person->createAccount();
-            }
-
-            else if (i == 7) {
-                std::cout << person->getNameSurname() << " with ID " << person->getAccountID() << " wants to withdraw money.\n";
-            }
+    void handleQuery() {
+        if (type == "withdrawal"){
 
         }
     }
-
-    void denyRequest(Human* person) override {
-        std::cout << "Sorry, " << (person->getGender() == "male" ? "sir" : "miss") << ", but I have to deny your request. Please head out.\n";
-    }
-
-    void acceptRequest(Human* person) override {
-        std::cout << "Here goes your money, " << (person->getGender() == "male" ? "sir" : "miss") << ". Have a great day.\n";
-    }
-};
-class depositRequest : public Request_ {
-    bool handleRequest(Human* person) override {
-
-    }
-
-    void denyRequest(Human* person) override {
-
-    }
-
-    void acceptRequest(Human* person) override {
-
-    }
-};
-class createAccountRequest : public Request_ {
-    bool handleRequest(Human* person) override {
-
-    }
-
-    void denyRequest(Human* person) override {
-
-    }
-
-    void acceptRequest(Human* person) override {
-
-    }
 };
 
 
-enum REQUESTS {
-    WITHDRAWAL, DEPOSIT, CREATE_ACCOUNT
+class Humanoid : public BankUser {
+public:
+    Humanoid(std::string name_, int age, bool canUseBank, std::string query_type, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
+    : BankUser(ID_, accountType_, balance_, income_) {
+        query = new Query_ (query_type, this);
+    }
+
+    Humanoid() { /// no arguments - random values
+        name = names[rn(0, names.size()-1)] + ' ' + surnames[rn(0,surnames.size()-1)];
+        age = rn(0,99);
+        canUseBank = rn(0, 9);
+        std::vector<std::string> queries {};
+    }
+
+//    std::string getName() {
+//        return name;
+//    }
+//    std::string getSpecies() {
+//        return species;
+//    }
+//    bool ableToUseBank() {
+//        return canUseBank;
+//    }
+
+    std::string name;
+    std::string species;
+    int age;
+    bool canUseBank;
+    Query_* query;
+
 };
 
-Request_* selectRequest(REQUESTS TYPE) {
-    if (TYPE == WITHDRAWAL) {
-        Request_* req = new withdrawalRequest;
-        return req;
-    }
-    if (TYPE == DEPOSIT) {
-
-    }
-    if (TYPE == CREATE_ACCOUNT) {
-
-    }
-}
-
-class Game {
-    int highScore = 0;
-    int currentScore = 0;
-    bool active = true;
+class Human : public Humanoid {
 
 public:
-    void play();
-    void stop() {
-        active = false;
+    Human() : Humanoid() {
+        species = "human";
     }
 
-    int getHighScore() {
-        return highScore;
+    Human(std::string name_, int age_, bool canUseBank_, std::string query_type, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
+    : Humanoid(name_, age_, canUseBank_, query_type, ID_, accountType_, balance_, income_) {
+        species = "human";
+    }
+
+    void greetCashier() override {
+        std::cout << "Hello! my name is " << this->name << '\n';
+    }
+
+    std::string TellWithdrawalRequest(uint64_t amount) override {
+        return "I would like to withdraw " + std::to_string(amount) + " UAH\n";
     }
 };
-
-void Game::play(){
-
-    active = true;
-    
-    while (active) {
-
-        Human* person = nullptr;
-
-        if (randomNumber(0,1))
-            person = new Woman("random");
-        else
-            person = new Man("random");
-
-        Request_* req = selectRequest(WITHDRAWAL);
-
-        active = req->handleRequest(person);
-
-
-
-        if (active) {
-            std::cout << "Press Enter to Continue";
-            std::cin.ignore();
-            std::string myString = "";
-            std::getline(std::cin, myString);
-            if (myString.length() != 0) stop();
-        }
-    }
-
-}
+#include <vector>
 
 int main() {
+    std::vector<Human*> h(100);
+    for (auto& i : h)
+        i = new Human();
 
-    Game instance1;
-    instance1.play();
-
-
-
-//    for (int i = 0; i < 20; ++i){
-//        Man MAN("random");
-//        std::cout << "name_surname: " << MAN.getNameSurname() << "; age: "
-//        << MAN.getAge() << "; ID:" << MAN.getAccountID() << "; species:" << MAN.getGender() << "; balance: " << MAN.getBalance() <<
-//        "; isReg: " << MAN.isRegistered() << '\n';
-//    }
-//    std::cout << "\n\n\n\n";
-//    for (int i = 0; i < 20; ++i){
-//        Woman MAN("random");
-//        std::cout << "name_surname: " << MAN.getNameSurname() << "; age: "
-//                  << MAN.getAge() << "; ID:" << MAN.getAccountID() << "; species:" << MAN.getGender() << "; balance: " << MAN.getBalance() <<
-//                  "; isReg: " << MAN.isRegistered() << '\n';
-//    }
-
-//    Alien al;
+    for (int i = 0; i < 100; ++i)
+        std::cout << h[i]->name << ' ' << h[i]->getBalance() << ' ' << h[i]->getId() << ' ' << h[i]->getAccountType() << ' ' << h[i]->getIncome() << ' ' << h[i]->query->type << '\n';
+    ///array here
 }
