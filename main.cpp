@@ -35,41 +35,16 @@ public:
         return income;
     }
 
-    virtual std::string TellWithdrawalRequest(uint64_t amount) = 0;
+    virtual std::string TellWithdrawalQuery(uint64_t amount) = 0;
 
     virtual void greetCashier() = 0;
 
 };
 
-class Humanoid;
-class Query_ {
-public:
-    bool resolved = false;
-    std::string type;
-    Humanoid* person;
-    Query_(std::string type_, Humanoid* person_) : type(type_), person(person_){}
-
-    void acceptRequest(){
-        resolved = true;
-    }
-
-    void denyRequest() {
-        resolved = true;
-    }
-
-    void handleQuery() {
-        if (type == "withdrawal"){
-
-        }
-    }
-};
-
-
 class Humanoid : public BankUser {
 public:
-    Humanoid(std::string name_, int age, bool canUseBank, std::string query_type, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
+    Humanoid(std::string name_, int age, bool canUseBank, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
     : BankUser(ID_, accountType_, balance_, income_) {
-        query = new Query_ (query_type, this);
     }
 
     Humanoid() { /// no arguments - random values
@@ -93,8 +68,50 @@ public:
     std::string species;
     int age;
     bool canUseBank;
-    Query_* query;
 
+};
+
+class Query_ {
+public:
+    bool resolved = false;
+    std::string type;
+    Humanoid* person;
+    Query_(std::string type_, Humanoid* person_) : type(type_), person(person_){}
+
+    void acceptQuery(){
+        resolved = true;
+    }
+
+    void denyQuery() {
+        resolved = true;
+    }
+
+    void withdrawal_displayOptions(){
+        std::cout << "Type in a number that corresponds to the text nex to it.\n"
+                     "| 1. accept the query\n"
+                     "| 2. deny the query\n"
+                     "| 3. check whether ID is fake\n"
+                     "| 4. check whether the person has enough money\n"
+                     "| 5. check account type (can be normal or VIP)\n"
+                     "==========================================================\n";
+    }
+
+    void handleQuery() {
+        if (type == "withdrawal"){
+            uint64_t withdraw_amount = rn(1,1500);
+
+            person->greetCashier();
+            person->TellWithdrawalQuery(withdraw_amount);
+
+            std::cout << '\n';
+            withdrawal_displayOptions();
+            
+            while (!resolved) {
+                int t;
+                std::cin >> t;
+            }
+        }
+    }
 };
 
 class Human : public Humanoid {
@@ -104,8 +121,8 @@ public:
         species = "human";
     }
 
-    Human(std::string name_, int age_, bool canUseBank_, std::string query_type, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
-    : Humanoid(name_, age_, canUseBank_, query_type, ID_, accountType_, balance_, income_) {
+    Human(std::string name_, int age_, bool canUseBank_, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
+    : Humanoid(name_, age_, canUseBank_, ID_, accountType_, balance_, income_) {
         species = "human";
     }
 
@@ -113,10 +130,12 @@ public:
         std::cout << "Hello! my name is " << this->name << '\n';
     }
 
-    std::string TellWithdrawalRequest(uint64_t amount) override {
+    std::string TellWithdrawalQuery(uint64_t amount) override {
         return "I would like to withdraw " + std::to_string(amount) + " UAH\n";
     }
 };
+
+
 #include <vector>
 
 int main() {
@@ -125,6 +144,6 @@ int main() {
         i = new Human();
 
     for (int i = 0; i < 100; ++i)
-        std::cout << h[i]->name << ' ' << h[i]->getBalance() << ' ' << h[i]->getId() << ' ' << h[i]->getAccountType() << ' ' << h[i]->getIncome() << ' ' << h[i]->query->type << '\n';
+        std::cout << h[i]->name << ' ' << h[i]->getBalance() << ' ' << h[i]->getId() << ' ' << h[i]->getAccountType() << ' ' << h[i]->getIncome() << ' ' << '\n';
     ///array here
 }
