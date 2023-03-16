@@ -36,6 +36,7 @@ public:
     }
 
     virtual void TellWithdrawalQuery(uint64_t amount) = 0;
+    virtual void TellDepositQuery(uint64_t amount) = 0;
 
     virtual void greetCashier() = 0;
 
@@ -94,9 +95,18 @@ public:
                      "==========================================================\n";
     }
 
+    void deposit_displayOptions(){
+        std::cout << "Type in a number that corresponds to the text next to it.\n"
+                     "| 1. accept the query\n"
+                     "| 2. deny the query\n"
+                     "| 3. check whether ID is fake\n"
+                     "| 4. check whether the person can use bank\n"
+                     "==========================================================\n";
+    }
+
     int handleQuery() {
         if (type == "withdrawal"){
-            uint64_t withdrawal_amount = rn(1,1500);
+            uint64_t withdrawal_amount = rn(1,5000);
 
             person->greetCashier();
             person->TellWithdrawalQuery(withdrawal_amount);
@@ -125,7 +135,9 @@ public:
                         error_message += "This person is banned from using bank; ";
                         points -= 15;
                     }
-                    
+
+
+
                     if (person->getAccountType() == "VIP" && points > 0) {
                         points = -1; ///that's right
                     }
@@ -158,9 +170,13 @@ public:
                         std::cout << "This person was not guilty of anything\n";
 
                         if (person->getAccountType() == "VIP") {
+                            std::cout << " (-30 points)";
                             points -= 30;
                         }
-                        else points -= 20;
+                        else {
+                            std::cout << " (-20 points)";
+                            points -= 20;
+                        }
                     }
 
                     else {
@@ -186,6 +202,90 @@ public:
                     std::cout << person->getName() << ' ' << (person->ableToUseBank() ? "can use bank\n" : "is banned from using bank\n");
             }
         }
+        else if (type == "deposit"){
+            uint64_t deposit_amount = rn(1,5000);
+
+            person->greetCashier();
+            person->TellDepositQuery(deposit_amount);
+
+            std::cout << '\n';
+            deposit_displayOptions();
+
+            while (!resolved) {
+                int t;
+                std::cin >> t;
+
+                if (t == 1) {
+                    std::string error_message = "ERROR: ";
+
+                    if (person->getId().substr(5,4) == "FAKE"){
+                        error_message += "This person's ID is fake; ";
+                        points -= 15;
+                    }
+                    if (!person->ableToUseBank()){
+                        error_message += "This person is banned from using bank; ";
+                        points -= 15;
+                    }
+
+                    if (person->getAccountType() == "VIP" && points < 0) {
+                        points = -1; ///that's right
+                    }
+
+
+                    if (points < 0) {
+                        std::cout << error_message << "\nYou made a mistake while dealing with client. Your points decreased by " << points
+                                  << " points\n";
+                    }
+                    else {
+                        if (person->getAccountType() == "VIP") {
+                            std::cout << "You successfully handled the task. Good job! (+10 points)\n";
+                            points += 10;
+                        }
+                        else {
+                            std::cout << "You successfully handled the task. Good job! (+5 points)\n";
+                            points += 5;
+                        }
+                    }
+
+                    this->resolveQuery();
+                }
+
+                else if (t == 2) {
+
+                    if (person->getId().substr(5,4) != "FAKE" && person->ableToUseBank())
+                    {
+                        std::cout << "This person was not guilty of anything\n";
+
+                        if (person->getAccountType() == "VIP") {
+                            std::cout << " (-30 points)";
+                            points -= 30;
+                        }
+                        else {
+                            std::cout << " (-20 points)";
+                            points -= 20;
+                        }
+                    }
+
+                    else {
+                        if (person->getAccountType() == "VIP") {
+                            std::cout << "You successfully handled the task. Good job! (+10 points)\n";
+                            points += 10;
+                        }
+                        else {
+                            std::cout << "You successfully handled the task. Good job! (+5 points)\n";
+                            points += 5;
+                        }
+                    }
+
+                    this->resolveQuery();
+                }
+
+                else if (t == 3)
+                    std::cout << person->getName() << "'s ID is " << person->getId() << '\n';
+                else if (t == 4)
+                    std::cout << person->getName() << ' ' << (person->ableToUseBank() ? "can use bank\n" : "is banned from using bank\n");
+            }
+        }
         return points;
     }
 };
@@ -206,8 +306,37 @@ public:
         std::cout << "Hello! my name is " << this->name << '\n';
     }
 
+    void TellDepositQuery(uint64_t amount) override {
+        std::cout << "I would like to deposit " + std::to_string(amount) + " UAH into my bank account.\n";
+    }
+
     void TellWithdrawalQuery(uint64_t amount) override {
         std::cout << "I would like to withdraw " + std::to_string(amount) + " UAH from my bank account.\n";
+    }
+};
+
+class Alien : public Humanoid {
+
+public:
+    Alien() : Humanoid() {
+        species = "human";
+    }
+
+    Alien(std::string name_, int age_, bool canUseBank_, std::string ID_, std::string accountType_, uint64_t balance_, uint64_t income_)
+            : Humanoid(name_, age_, canUseBank_, ID_, accountType_, balance_, income_) {
+        species = "human";
+    }
+
+    void greetCashier() override {
+        std::cout << "$%AC0!^6:; _=U]}\\|/?., 83[X&7:; " << this->name << '\n';
+    }
+
+    void TellDepositQuery(uint64_t amount) override {
+        std::cout << "%!^*@#~[]|/=&$> ->D3P0S1T " + std::to_string(amount) + " U4H <^%#~!?>.\n";
+    }
+
+    void TellWithdrawalQuery(uint64_t amount) override {
+        std::cout << "}; '.>>/?]{0(3 A43{//|d:' ;'' ->W1THDR4W " + std::to_string(amount) + " U4H {0(383[X. ]}\\\n";
     }
 };
 
@@ -219,10 +348,18 @@ constexpr int min_points = -50;
 
 int main() {
     int score = 0;
+
+    std::vector<std::string> Q_TYPE ={"deposit", "withdrawal"};
     while (true){
         std::cout << "\n\n\n\n\n";
-        Humanoid* humaa = new Human();
-        Query_ q("withdrawal", humaa);
+        Humanoid* entity;
+
+        if (rn(0,1) == 0)
+            entity = new Alien();
+        else
+            entity = new Human();
+
+        Query_ q(Q_TYPE[rn(0,Q_TYPE.size()-1)], entity);
         score += q.handleQuery();
 
         if (score < min_points) {
