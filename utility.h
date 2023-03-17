@@ -2,10 +2,8 @@
 #define LABOOP_UTILITY_H
 #include <vector>
 #include <string>
+int rn(int lower, int higher);
+extern std::vector<std::string> names;
+extern std::vector<std::string> surnames;
 
-extern std::vector<std::string> male_names;
-extern std::vector<std::string> female_names;
-extern std::vector<std::string> male_surnames;
-extern std::vector<std::string> female_surnames;
-
-#endif
+#endif //LABOOP_UTILITY_H

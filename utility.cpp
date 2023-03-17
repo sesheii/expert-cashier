@@ -1,8 +1,16 @@
 #include "utility.h"
 #include <vector>
 #include <string>
+#include <chrono>
+#include <random>
 
-std::vector<std::string> male_names {{"Andriy", "Borys", "Bohdan", "Danylo", "Denys", "Ihor", "Ivan", "Kyrylo", "Maksym", "Mykhailo",
+int rn(int lower, int higher) {
+    std::uniform_int_distribution distribution(lower, higher);
+    std::mt19937_64 timeSeededGenerator {static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())};
+    return distribution(timeSeededGenerator);
+}
+
+std::vector<std::string> names {"Andriy", "Borys", "Bohdan", "Danylo", "Denys", "Ihor", "Ivan", "Kyrylo", "Maksym", "Mykhailo",
                                       "Nazar", "Oleh", "Orest", "Oleksandr", "Pavlo", "Roman", "Serhiy", "Taras", "Vadym", "Viktor",
                                       "Volodymyr", "Yaroslav", "Yevhen", "Anatoliy", "Anton", "Artem", "Arseniy", "Artemiy", "Artur",
                                       "Vasyl", "Vitaliy", "Volodymyr", "Hryhoriy", "Dmytro", "Zakhar", "Zinoviy", "Ihor", "Ihor",
@@ -11,9 +19,8 @@ std::vector<std::string> male_names {{"Andriy", "Borys", "Bohdan", "Danylo", "De
                                       "Yan", "Yaromir", "Yaroslav", "Yulian", "Zakhar", "Zinoviy", "Bohdan", "Dmytro", "Hryhorii",
                                       "Ihor", "Ivan", "Kyrylo", "Levko", "Mykyta", "Oleksandr", "Pavlo", "Serhii", "Vikentiy",
                                       "Volodymyr", "Yevhenii", "Yosyp", "Zakharii", "Zinovii", "Andrii", "Boryslav", "Bohdan",
-                                      "Danylo", "Denys", "Ihor", "Ivan", "Kyrylo", "Maksym", "Mykhailo", "Nazar"}};
-
-std::vector<std::string> female_names {"Anastasiya", "Anna", "Oksana", "Kateryna", "Tetiana", "Iryna", "Daria", "Yana", "Olena", "Nadia",
+                                      "Danylo", "Denys", "Ihor", "Ivan", "Kyrylo", "Maksym", "Mykhailo", "Nazar","Anastasiya", "Anna",
+                                      "Oksana", "Kateryna", "Tetiana", "Iryna", "Daria", "Yana", "Olena", "Nadia",
                                         "Olha", "Ivanna", "Mariya", "Nina", "Nataliya", "Halyna", "Yuliya", "Larysa", "Liliya", "Zoryana",
                                         "Yaroslava", "Roksolana", "Veronika", "Valentyna", "Vira", "Viktoriya", "Olesya", "Marianna",
                                         "Taisiya", "Valeriya", "Alina", "Karina", "Sofiya", "Yelyzaveta", "Lyudmyla", "Hanna", "Irina",
@@ -25,7 +32,7 @@ std::vector<std::string> female_names {"Anastasiya", "Anna", "Oksana", "Kateryna
                                         "Viktoriia", "Vira", "Yarina", "Yelyzaveta", "Yulianna", "Zlata", "Zoriana", "Zoryana",
                                         "Adriana", "Anhelina", "Bohdanna", "Dana"};
 
-std::vector<std::string> male_surnames {"Shevchenko", "Kovalenko", "Bondarenko", "Tkachenko", "Kravchenko", "Yakovenko", "Petrov",
+std::vector<std::string> surnames {"Shevchenko", "Kovalenko", "Bondarenko", "Tkachenko", "Kravchenko", "Yakovenko", "Petrov",
                                         "Oliynyk", "Moroz", "Kryvyi", "Bilous", "Kostyuk", "Protsenko", "Hrytsenko", "Kolomiyets",
                                         "Chernysh", "Korol", "Klymchuk", "Mykhailiuk", "Kucher", "Bodnar", "Berezhnyi", "Korniienko",
                                         "Melnichenko", "Holovko", "Yefremov", "Hnatyuk", "Lukashenko", "Stupak", "Voloshyn", "Kucherenko",
@@ -35,9 +42,8 @@ std::vector<std::string> male_surnames {"Shevchenko", "Kovalenko", "Bondarenko",
                                         "Dubovyi", "Koval", "Zaharchenko", "Shvets", "Ivanyshyn", "Tymoshenko", "Demchuk", "Shcherban",
                                         "Vakarchuk", "Makarenko", "Humeniuk", "Yermolenko", "Kolomiets", "Ovcharenko", "Kovalenko",
                                         "Rybalko", "Pidhirnyi", "Sokolov", "Zhyvotko", "Zaika", "Dmytruk", "Didyk", "Myskiv", "Savenko",
-                                        "Popov", "Chumak", "Kravets", "Romanchuk", "Hrab", "Bereza", "Vasylchenko"};
-
-std::vector<std::string> female_surnames {"Kovalenko", "Bondarenko", "Tkachenko", "Kravchenko", "Yakovenko", "Kovalchuk", "Oliynyk",
+                                        "Popov", "Chumak", "Kravets", "Romanchuk", "Hrab", "Bereza", "Vasylchenko",
+                                        "Kovalenko", "Bondarenko", "Tkachenko", "Kravchenko", "Yakovenko", "Kovalchuk", "Oliynyk",
                                           "Moroz", "Shevchenko", "Bilous", "Kryvetska", "Kostyuk", "Protsenko", "Pavlenko", "Hrytsenko",
                                           "Kolomiyets", "Chernysh", "Korol", "Klymchuk", "Mykhailiuk", "Kucher", "Zaytseva", "Berezhna",
                                           "Korniyenko", "Boiko", "Melnichenko", "Holovko", "Yefremova", "Hnatyuk", "Lukashenko", "Stupak",
